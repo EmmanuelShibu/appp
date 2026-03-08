@@ -12,17 +12,17 @@ using Serilog.Formatting.Json;
 // ── Bootstrap Serilog before the host builds ─────────────────────────────
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft",                   LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.Hosting.Lifetime",  LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
     .Enrich.FromLogContext()       // picks up all ForContext() properties
     .Enrich.WithMachineName()
     .WriteTo.Console()             // helpful during local dev
     .WriteTo.File(
-        formatter:              new JsonFormatter(renderMessage: true),
-        path:                   Path.Combine(AppContext.BaseDirectory, "Logs", "banking-app-logs.json"),
-        rollingInterval:        RollingInterval.Day,
+        formatter: new JsonFormatter(renderMessage: true),
+        path: Path.Combine(AppContext.BaseDirectory, "Logs", "banking-app-logs.json"),
+        rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
-        shared:                 true    // safe for IIS worker-process restarts
+        shared: true    // safe for IIS worker-process restarts
     )
     .CreateLogger();
 
@@ -48,8 +48,7 @@ try
     builder.Services.AddCors(o => o.AddPolicy("BankingPolicy", p =>
         p.WithOrigins(origins)
          .AllowAnyHeader()
-         .AllowAnyMethod()
-         .AllowCredentials()));
+         .AllowAnyMethod()));
 
     // ── MVC + Swagger ─────────────────────────────────────────────────────
     builder.Services.AddControllers();
@@ -60,13 +59,17 @@ try
     var app = builder.Build();
 
     // ── Middleware pipeline ───────────────────────────────────────────────
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    if (app.Environment.IsDevelopment())
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Banking API v1");
-        c.RoutePrefix = "swagger";
-    });
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Banking API v1");
+            c.RoutePrefix = "swagger";
+        });
+    }
 
+    app.UseHttpsRedirection();
     app.UseRouting();
     app.UseCors("BankingPolicy");
     app.UseAuthorization();

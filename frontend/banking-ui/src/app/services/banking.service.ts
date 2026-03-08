@@ -10,14 +10,14 @@ import {
   TransferRequest,
   TransferResponse
 } from '../models/banking.models';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class BankingService {
 
-  // ── Change this to your IIS URL in production ──────────────
-  private readonly api = 'http://localhost:5000/api/banking';
+  private readonly api = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Accounts
   getAccounts(): Observable<Account[]> {
