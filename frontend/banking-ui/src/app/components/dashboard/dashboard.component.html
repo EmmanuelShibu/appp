@@ -2,9 +2,7 @@
 <div class="dashboard">
 
   <!-- ── Alert banner ──────────────────────────────────────── -->
-  <div class="alert-banner"
-       *ngIf="alert"
-       [class]="'alert-' + alert.type">
+  <div class="alert-banner" *ngIf="alert" [class]="'alert-' + alert.type">
     <span>{{ alert.message }}</span>
     <button class="alert-close" (click)="dismissAlert()">✕</button>
   </div>
@@ -61,9 +59,7 @@
             Logs: ClassName=BankingController, LogLevel=Error.
           </p>
         </div>
-        <button class="btn-chaos"
-                (click)="triggerChaos('null')"
-                [disabled]="!!chaosLoading">
+        <button class="btn-chaos" (click)="triggerChaos('null')" [disabled]="!!chaosLoading">
           {{ chaosLoading === 'null' ? 'Triggering…' : 'Trigger' }}
         </button>
       </div>
@@ -77,9 +73,7 @@
             Logs: ClassName=BankingController, LogLevel=Error.
           </p>
         </div>
-        <button class="btn-chaos"
-                (click)="triggerChaos('db')"
-                [disabled]="!!chaosLoading">
+        <button class="btn-chaos" (click)="triggerChaos('db')" [disabled]="!!chaosLoading">
           {{ chaosLoading === 'db' ? 'Triggering…' : 'Trigger' }}
         </button>
       </div>
@@ -93,10 +87,133 @@
             ASP.NET + Serilog both record the full stack trace.
           </p>
         </div>
-        <button class="btn-chaos"
-                (click)="triggerChaos('unhandled')"
-                [disabled]="!!chaosLoading">
+        <button class="btn-chaos" (click)="triggerChaos('unhandled')" [disabled]="!!chaosLoading">
           {{ chaosLoading === 'unhandled' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">⏳</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Slow Transaction</p>
+          <p class="chaos-desc">
+            Simulates a long-running service call and inefficient code loop.
+            Logs execution time and threshold.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('slow-tx')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'slow-tx' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">🔍</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Slow DB Query</p>
+          <p class="chaos-desc">
+            Simulates missing indexes or table locks.
+            Logs SQL query, database name, and execution time.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('slow-query')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'slow-query' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">🔌</div>
+        <div class="chaos-body">
+          <p class="chaos-name">External API Timeout</p>
+          <p class="chaos-desc">
+            Simulates a 504 Gateway Timeout from a 3rd-party integration.
+            Logs endpoint, method, and response time.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('ext-api')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'ext-api' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">📈</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Runtime Metrics</p>
+          <p class="chaos-desc">
+            Logs high memory usage, thread counts, and GC details to monitor for memory leaks.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('runtime')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'runtime' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">📚</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Deep Stack Trace</p>
+          <p class="chaos-desc">
+            Throws a nested library incompatibility exception.
+            Logs deep stack trace, class, and method names.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('stack')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'stack' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">🌊</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Throughput Spike</p>
+          <p class="chaos-desc">
+            Simulates high request latency and request drops.
+            Logs Requests Per Minute, error rate, and peak load.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('throughput')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'throughput' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">💼</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Custom Business Event</p>
+          <p class="chaos-desc">
+            Simulates a business KPI event (e.g., Flagged transaction).
+            Logs Event Name, User ID, and Status.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('business')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'business' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">🌐</div>
+        <div class="chaos-body">
+          <p class="chaos-name">HTTP Request (404/500)</p>
+          <p class="chaos-desc">
+            Simulates raw web server endpoint activity.
+            Logs HTTP Method, URL, Client IP, Response Time, and Status Code.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('http-req')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'http-req' ? 'Triggering…' : 'Trigger' }}
+        </button>
+      </div>
+
+      <div class="chaos-card">
+        <div class="chaos-icon">🛤️</div>
+        <div class="chaos-body">
+          <p class="chaos-name">Transaction Trace</p>
+          <p class="chaos-desc">
+            Simulates a request execution path trace.
+            Logs slow methods, code-level trace, and request parameters.
+          </p>
+        </div>
+        <button class="btn-chaos" (click)="triggerChaos('trace')" [disabled]="!!chaosLoading">
+          {{ chaosLoading === 'trace' ? 'Triggering…' : 'Trigger' }}
         </button>
       </div>
 

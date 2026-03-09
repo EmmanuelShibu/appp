@@ -95,7 +95,7 @@ public class BankingController : ControllerBase
             .Select(t => new TransactionDto(
                 t.Id,
                 t.FromAccount != null ? t.FromAccount.AccountNumber : null,
-                t.ToAccount   != null ? t.ToAccount.AccountNumber   : null,
+                t.ToAccount != null ? t.ToAccount.AccountNumber : null,
                 t.Amount,
                 t.TransactionType,
                 t.Status,
@@ -193,12 +193,12 @@ public class BankingController : ControllerBase
 
             await _db.Transactions.AddAsync(new Transaction
             {
-                FromAccountId   = from.Id,
-                ToAccountId     = to.Id,
-                Amount          = request.Amount,
+                FromAccountId = from.Id,
+                ToAccountId = to.Id,
+                Amount = request.Amount,
                 TransactionType = "TRANSFER",
-                Status          = "WARNING",
-                Notes           = $"Insufficient funds. Available={from.Balance:C}, Requested={request.Amount:C}"
+                Status = "WARNING",
+                Notes = $"Insufficient funds. Available={from.Balance:C}, Requested={request.Amount:C}"
             });
             await _db.SaveChangesAsync();
 
@@ -207,16 +207,16 @@ public class BankingController : ControllerBase
 
         // ── SUCCESS → INFO ────────────────────────────────────────────────
         from.Balance -= request.Amount;
-        to.Balance   += request.Amount;
+        to.Balance += request.Amount;
 
         await _db.Transactions.AddAsync(new Transaction
         {
-            FromAccountId   = from.Id,
-            ToAccountId     = to.Id,
-            Amount          = request.Amount,
+            FromAccountId = from.Id,
+            ToAccountId = to.Id,
+            Amount = request.Amount,
             TransactionType = "TRANSFER",
-            Status          = "SUCCESS",
-            Notes           = $"Transfer of {request.Amount:C} from {from.AccountNumber} to {to.AccountNumber}."
+            Status = "SUCCESS",
+            Notes = $"Transfer of {request.Amount:C} from {from.AccountNumber} to {to.AccountNumber}."
         });
 
         await _db.SaveChangesAsync();
@@ -300,5 +300,163 @@ public class BankingController : ControllerBase
         throw new InvalidOperationException(
             "CHAOS_FAULT: Critical ledger invariant violated – " +
             "debit and credit totals are inconsistent. Manual reconciliation required.");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/slow-transaction
+    //  Simulates a slow transaction/trace. Logs → WARNING
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/slow-transaction")]
+    public async Task<IActionResult> ChaosSlowTransaction()
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        await Task.Delay(3500); // Simulate blocking/slow execution
+        watch.Stop();
+
+        BankingLogger.Warning(ClassName,
+            $"Transaction Trace: Slow controller execution detected. " +
+            $"TransactionName='ProcessPayment', ExecutionTime={watch.ElapsedMilliseconds}ms, " +
+            $"Threshold=2000ms, InefficientCodeLoop=true.");
+
+        return Ok(new ApiError($"Transaction processed slowly ({watch.ElapsedMilliseconds}ms)."));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/slow-query
+    //  Simulates a database bottleneck. Logs → WARNING
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/slow-query")]
+    public async Task<IActionResult> ChaosSlowQuery()
+    {
+        // Forces the database to literally hang for 4 seconds.
+        // Site24x7 APM will intercept this and put it in the "Database Operations" tab.
+        await _db.Database.ExecuteSqlRawAsync("SELECT SLEEP(4);");
+
+        return Ok(new ApiError("Real slow database query executed."));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/external-api
+    //  Simulates a failed third-party integration. Logs → ERROR
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/external-api")]
+    public async Task<IActionResult> ChaosExternalApi()
+    {
+        using var client = new HttpClient();
+
+        // httpstat.us is a free service for testing HTTP responses. 
+        // This simulates a 3rd party API taking 5 seconds and returning a 504 Gateway Timeout.
+        // Site24x7 will log this in the "External APIs" tab.
+        var response = await client.GetAsync("https://httpstat.us/504?sleep=5000");
+
+        return StatusCode((int)response.StatusCode, new ApiError("Real external API failure triggered."));
+    }
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/runtime-metrics
+    //  Simulates JVM/CLR runtime metrics (Memory/CPU). Logs → INFO
+    // ─────────────────────────────────────────────────────────
+    // Add this static list to the top of your controller class to hold memory globally
+    private static readonly List<byte[]> _memoryLeak = new List<byte[]>();
+
+    [HttpGet("chaos/runtime-metrics")]
+    public IActionResult ChaosRuntimeMetrics()
+    {
+        // Actually allocates ~50MB of memory into the heap that the Garbage Collector cannot clean up.
+        // Click this a few times to see the Memory graph spike in Site24x7 Infrastructure.
+        _memoryLeak.Add(new byte[1024 * 1024 * 50]);
+
+        var memoryMb = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+        return Ok(new ApiError($"Real memory allocated. Current process memory: {memoryMb} MB"));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/deep-stack
+    //  Simulates a complex stack trace for debugging. Logs → ERROR
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/deep-stack")]
+    public IActionResult ChaosDeepStack()
+    {
+        try
+        {
+            TriggerLevel1();
+            return Ok(); // Will never hit
+        }
+        catch (Exception ex)
+        {
+            BankingLogger.Error(ClassName,
+                $"Code-level Bug / Dependency Failure. ExceptionType='{ex.GetType().Name}', " +
+                $"Message='{ex.Message}', ClassName='PaymentProcessor', MethodName='ExecuteTransfer'.", ex);
+
+            return StatusCode(500, new ApiError("Internal server error due to dependency failure."));
+        }
+    }
+
+    // Helper methods to build a deep stack trace
+    private void TriggerLevel1() => TriggerLevel2();
+    private void TriggerLevel2() => TriggerLevel3();
+    private void TriggerLevel3() => throw new DllNotFoundException("Library incompatibility: 'lib-crypto-v2.dll' not found.");
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/throughput
+    //  Simulates load balancing issues/traffic spikes. Logs → WARNING
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/throughput")]
+    public IActionResult ChaosThroughput()
+    {
+        BankingLogger.Warning(ClassName,
+            "Throughput Alert: Traffic spike detected causing request drops. " +
+            "RequestsPerMinute=12500, ErrorRate=14.5%, AvgResponseTime=1250ms, " +
+            "PeakLoad=true, SuccessfulTransactions=10687.");
+
+        return Ok(new ApiError("Throughput warning logged."));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/business-event
+    //  Simulates Custom Logs/Business KPIs. Logs → INFO
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/business-event")]
+    public IActionResult ChaosBusinessEvent()
+    {
+        BankingLogger.Info(ClassName,
+            $"Business KPI Tracked. EventName='HighValueTransfer_Flagged', " +
+            $"UserID='USR-88219', TransactionID='TX-{Guid.NewGuid().ToString().Substring(0, 8)}', " +
+            $"EventTime='{DateTime.UtcNow:O}', Status='RequiresManualReview'.");
+
+        return Ok(new ApiError("Custom business event logged."));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/http-request
+    //  Matches "HTTP Requests" table row. Logs → WARNING / INFO
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/http-request")]
+    public IActionResult ChaosHttpRequest()
+    {
+        // Simulating an IIS/Kestrel HTTP request log for a 404
+        BankingLogger.Warning(ClassName,
+            "HTTP Request Log: Endpoint not found. " +
+            "HTTPMethod='POST', UrlEndpoint='/api/banking/legacy-transfer', " +
+            "ClientIP='192.168.1.105', ResponseTime=12ms, StatusCode=404.");
+
+        return StatusCode(404, new ApiError("Simulated 404 HTTP Request logged."));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  GET /api/banking/chaos/transaction-trace
+    //  Matches "Transaction Traces" table row explicitly. Logs → INFO
+    // ─────────────────────────────────────────────────────────
+    [HttpGet("chaos/transaction-trace")]
+    public IActionResult ChaosTransactionTrace()
+    {
+        BankingLogger.Info(ClassName,
+            "Transaction Trace Execution Path: " +
+            "TransactionName='CalculateInterestAccrual', " +
+            "ExecutionTime=850ms, " +
+            "SlowMethodCalls='AccountRepo.GetHistory(), TaxService.Calculate()', " +
+            "CodeLevelTrace='Controller -> Service -> Repository -> ExternalAPI', " +
+            "RequestParameters='{ accountType: \"savings\", months: 12 }'.");
+
+        return Ok(new ApiError("Transaction trace logged."));
     }
 }

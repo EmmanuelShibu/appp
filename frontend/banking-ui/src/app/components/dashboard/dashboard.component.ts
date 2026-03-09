@@ -4,7 +4,7 @@ import { CommonModule }      from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { BankingService }    from '../../services/banking.service';
 import { Account, Transaction } from '../../models/banking.models';
-import { catchError, of }    from 'rxjs';
+import { catchError, Observable, of }    from 'rxjs';
 
 interface Alert {
   type: 'success' | 'warning' | 'error';
@@ -62,28 +62,43 @@ export class DashboardComponent implements OnInit {
       });
   }
 
-  // ── Chaos ─────────────────────────────────────────────────
-  triggerChaos(type: 'null' | 'db' | 'unhandled'): void {
+// ── Chaos ─────────────────────────────────────────────────
+  triggerChaos(type: string): void {
     this.chaosLoading = type;
     this.alert = null;
 
-    const obs$ =
-      type === 'null'      ? this.svc.chaosNullReference() :
-      type === 'db'        ? this.svc.chaosDbTimeout()     :
-                             this.svc.chaosUnhandled();
+    let obs$: Observable<unknown>;
+
+    switch (type) {
+      case 'null':        obs$ = this.svc.chaosNullReference(); break;
+      case 'db':          obs$ = this.svc.chaosDbTimeout(); break;
+      case 'unhandled':   obs$ = this.svc.chaosUnhandled(); break;
+      case 'slow-tx':     obs$ = this.svc.chaosSlowTransaction(); break;
+      case 'slow-query':  obs$ = this.svc.chaosSlowQuery(); break;
+      case 'ext-api':     obs$ = this.svc.chaosExternalApi(); break;
+      case 'runtime':     obs$ = this.svc.chaosRuntimeMetrics(); break;
+      case 'stack':       obs$ = this.svc.chaosDeepStack(); break;
+      case 'throughput':  obs$ = this.svc.chaosThroughput(); break;
+      case 'business':    obs$ = this.svc.chaosBusinessEvent(); break;
+      case 'http-req':    obs$ = this.svc.chaosHttpRequest(); break;
+      case 'trace':       obs$ = this.svc.chaosTransactionTrace(); break;
+      default: return;
+    }
 
     obs$.pipe(
       catchError(err => {
         this.alert = {
           type: 'error',
-          message: `ERROR logged ✓ — ${err.error?.message ?? err.message ?? 'Server returned an error'}`
+          message: `Logged ✓ — ${err.error?.message ?? err.message ?? 'Server error generated'}`
         };
         this.chaosLoading = '';
         return of(null);
       })
     ).subscribe(res => {
       if (res !== null) {
-        this.alert = { type: 'error', message: 'ERROR endpoint hit successfully – check log file.' };
+        // Handle successful 200 OK responses that are still intentional logs
+        const msg = (res as any)?.message ?? 'Log generated successfully.';
+        this.alert = { type: 'success', message: `Logged ✓ — ${msg}` };
       }
       this.chaosLoading = '';
     });
