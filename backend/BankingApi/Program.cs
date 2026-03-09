@@ -19,7 +19,7 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()             // helpful during local dev
     .WriteTo.File(
         formatter: new JsonFormatter(renderMessage: true),
-        path: Path.Combine(AppContext.BaseDirectory, "Logs", "banking-app-logs.json"),
+        path: Path.Combine(Directory.GetCurrentDirectory(), "Logs", "banking-app-logs.json"),
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 7,
         shared: true    // safe for IIS worker-process restarts
