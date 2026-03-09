@@ -55,4 +55,40 @@ export class BankingService {
   chaosUnhandled(): Observable<unknown> {
     return this.http.get(`${this.api}/chaos/unhandled`);
   }
+
+    chaosSlowTransaction(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/slow-transaction`);
+  }
+
+  chaosSlowQuery(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/slow-query`);
+  }
+
+  chaosExternalApi(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/external-api`);
+  }
+
+  chaosRuntimeMetrics(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/runtime-metrics`);
+  }
+
+  chaosDeepStack(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/deep-stack`);
+  }
+
+  chaosThroughput(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/throughput`);
+  }
+
+  chaosBusinessEvent(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/business-event`);
+  }
+
+  chaosHttpRequest(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/http-request`);
+  }
+
+  chaosTransactionTrace(): Observable<unknown> {
+    return this.http.get(`${this.api}/chaos/transaction-trace`);
+  }
 }
